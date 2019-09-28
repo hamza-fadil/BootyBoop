@@ -6,7 +6,7 @@ from discord.ext import commands, tasks
 from requests_html import AsyncHTMLSession
 import nest_asyncio # thanks baby
 import time
-URL_TAJ = "https://vente.tryandjudge.com/dofuskamas.php" #Removed URL for obvious reasons
+URL_TAJ = "Url here" #Removed URL for obvious reasons
 nest_asyncio.apply()
 class ScapperCog(commands.Cog):
     def __init__(self,bot):
