@@ -4,7 +4,7 @@ from discord.utils import get
 from discord.ext.commands import has_permissions, CheckFailure
 
 bot = commands.Bot(command_prefix="!", description='Scrapping bot')
-TOKEN = "TOKEN-HERE"
+TOKEN = "NjE0NDM3NDA0NDYzNDY0NDQ5.XV_dmQ.SOoYlPaJmQ8NUfhBENtp5c3Ru9g"
 
 if __name__ == '__main__':
     bot.load_extension("headless")
