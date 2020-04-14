@@ -1,64 +1,54 @@
 import asyncio
-import sys
 import discord
-from bs4 import BeautifulSoup
 from discord.ext import commands, tasks
-from requests_html import AsyncHTMLSession
-import nest_asyncio # thanks baby
 import time
-URL_TAJ = "Url here" #Removed URL for obvious reasons
-nest_asyncio.apply()
+from selenium import webdriver
+URL_TAJ = "REDACTED"
 class ScapperCog(commands.Cog):
     def __init__(self,bot):
         self.bot = bot
-        self.render = None
         self.dispo = False
         self.notifStart = False
-        self.asession: AsyncHTMLSession = None
+        self.found = False
+        self.driver = webdriver.PhantomJS()
+        self.t1 = None
     async def getSite(self):
-        r = await self.asession.get(URL_TAJ)
-        await r.html.arender()
-        await self.asession.close()
-        return r
+        self.driver.get(URL_TAJ)
+        await asyncio.sleep(3.0)
+        prices = self.driver.find_element_by_id(id_='REDACTED')
+        text = prices.text
+        return text
     @commands.command(name="stop")
     async def stop(self,ctx):
-        if self.notifStart == False:
-            await ctx.send('Notification non activées')
-        else:
-            self.notifStart = False
-            await ctx.send('Notifications stoppées')
+        self.check.stop()
+        await ctx.send('Notification stoppée')
+    @tasks.loop(seconds=5.0)
     async def check(self):
-        self.asession = AsyncHTMLSession()
-        r = self.asession.run(self.getSite)
+        r = await self.getSite()
         try:
-            bs : BeautifulSoup = BeautifulSoup(r[0].html.raw_html,"lxml")
-            state: str = bs.find("td", text="Text you want to search for").find_next_sibling("td").find_next_sibling("td").text
-            state.lower
-            print(state)
-            if 'complet' in state:
-                self.dispo = False
-            else:
-                self.dispo = True
-        except Exception as e:
-            print("Erreur parsing, retry en cours ",e)
-    @commands.command(name="start")
-    async def start(self,ctx):
-        t1 = time.time()
-        await ctx.send('Notifications activées')
-        self.notifStart = True
-        while(self.notifStart):
-            await self.check()
-            print(self.notifStart)
-            if (self.dispo):
-                elapsed = time.time()-t1
+            start = r.find("REDACTED")
+            end = r.find("REDACTED") + 40
+            split = r[start:end]
+            if 'complet' not in split:
+                self.found = True
+                elapsed = time.time() - self.t1
                 hours, rem = divmod(elapsed, 3600)
                 minutes, seconds = divmod(rem, 60)
-                await ctx.send("Stock disponible : "+URL_TAJ)
-                self.notifStart = False
-                await ctx.send("Veuillez réactiver les notifications avec !start")
-                await ctx.send("Fini, temps passé: "+"{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds))               
-            await asyncio.sleep(30.0)
-
+                await self.start_ctx.send("Stock disponible : "+URL_TAJ)
+                await self.start_ctx.send("Veuillez réactiver les notifications avec !start")
+                await self.start_ctx.send("Fini, temps passé: "+"{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds))
+        except Exception as e:
+            await self.start_ctx.send("Erreur, retry en cours : ",e)
+        if self.found == True: 
+            self.check.stop()
+    
+    @commands.command(name="start")
+    async def start(self,ctx):
+        self.found = False
+        self.t1 = time.time()
+        await ctx.send("Notifications activées")
+        self.start_ctx = ctx
+        self.check.start()
 def setup(bot):
     bot.add_cog(ScapperCog(bot))
 
